@@ -1,0 +1,211 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+def rename_data_value(df):  # 重命名
+    df.rename(columns={'字段2': '名称', '字段3': '流通市值'}, inplace=True)
+    return df
+
+
+def rename_data_bitcoin(df):  # 重命名
+    df.rename(columns={'字段2': '名称', '字段3': '全球指数', '字段4': '历史高位', '字段5': '高位时间',
+                       '字段6': '历史低位', '字段7': '低位时间', '字段8': 'ATH跌幅'}, inplace=True)
+    return df
+
+
+def merge_with_name(df1, df2):  # 根据名字相同进行合并
+    return pd.merge(df1, df2, left_on='名称', right_on='名称')
+
+
+def delete_data_useless_value(df):  # 只保留市值
+    df.drop(['字段1'], axis=1, inplace=True)
+    df.drop(['字段2链接'], axis=1, inplace=True)
+    df.drop(['字段4'], axis=1, inplace=True)
+    df.drop(['字段5'], axis=1, inplace=True)
+    df.drop(['字段6'], axis=1, inplace=True)
+    df.drop(['字段7'], axis=1, inplace=True)
+    df.drop(['字段8'], axis=1, inplace=True)
+    df.drop(['字段9'], axis=1, inplace=True)
+    return df
+
+
+def delete_data_useless_bitcoin(df):  # 删链接
+    df.drop(['字段1'], axis=1, inplace=True)
+    df.drop(['字段2链接'], axis=1, inplace=True)
+    return df
+
+
+def percent_to_float(string):
+    if '%' in string:
+        newfloat = float(string.strip('%')) / 100
+        return newfloat
+
+
+def time_to_int(time):
+    if '-' in time:
+        newint = int(time.replace('-', '')) // 100
+        return newint
+
+
+if __name__ == '__main__':
+    location_bitcoin = 'C:\\Users\\CloudYirQ\\Desktop\\Bitcoin.xlsx'
+    location_value = 'C:\\Users\\CloudYirQ\\Desktop\\Value.xlsx'
+
+    print('''《大学计算机》课程报告\n
+    比特币等加密货币盘面情况以及涨跌数据处理分析\n
+    组长：蔚琦 2004011223\n
+    组员：吴鑫垚 2004011225\n
+    组员：徐凯 2004011226\n''')
+    isMerged = False
+    isLoaded = False
+    while True:
+        user_choice = input("1. 读取Excel文件并显示\n"
+                            "2. 进行数据清理并提取数据到列表\n"
+                            "3. 以饼图形式展现各个币种流通市值占比\n"
+                            "4. 历史高位以及现价的对比\n"
+                            "5. ATH跌幅和流通市值之间的关系\n"
+                            "6. 各个跌幅段币种个数\n"
+                            "7. 历史高位出现的时间\n"
+                            "0. 保存Excel文件并退出程序\n"
+                            "请选择想要的功能: ")
+        if user_choice == '1':
+            isLoaded = True
+            bitcoin = pd.read_excel(location_bitcoin)
+            value = pd.read_excel(location_value)
+            print(bitcoin)
+            print(value)
+        elif user_choice == '2':
+            if isLoaded:
+                isMerged = True
+                bitcoin = rename_data_bitcoin(bitcoin)
+                value = rename_data_value(value)
+                bitcoin = delete_data_useless_bitcoin(bitcoin)
+                value = delete_data_useless_value(value)
+                data = merge_with_name(bitcoin, value)
+                data['流通市值'] = data['流通市值'].str.strip('亿')
+                data['流通市值'] = pd.to_numeric((data['流通市值']))
+                totalAmount = list(data['流通市值'])  # func3所用的
+                name = list(data['名称'])  # func3所用的
+                eachPeak = list(data['历史高位'])  # func4所用的
+                eachCurrent = list(data['全球指数'])  # func4所用的
+                # name = list(data['名称'])         # func4所用的 注释掉是因为这是后来改的 有重复使用过的
+                ATH = list(data['ATH跌幅'])  # func5
+                # totalAmount = list(data['流通市值'])    # func5
+                ATHFloated = []  # 跌幅是百分数 float一下
+                for i in ATH:
+                    j = percent_to_float(i)
+                    ATHFloated.append(j)
+
+                historyPeakTime = list(data['高位时间'])
+                historyPeakTimeInted = []
+                for i in historyPeakTime:
+                    j = time_to_int(i)
+                    historyPeakTimeInted.append(j)
+                print(data)
+            else:
+                print("Please run function 1 first.")
+        elif user_choice == '3':
+            fig1, ax1 = plt.subplots()
+            ax1.pie(totalAmount, labels=name, autopct='%1.1f%%', shadow=True, startangle=90)
+            ax1.axis('equal')
+            plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
+            plt.rcParams['font.serif'] = ['Microsoft YaHei']
+            plt.show()
+        elif user_choice == '4':
+            x = np.arange(len(name))
+            width = 0.35
+            fig, ax = plt.subplots()
+            rects1 = ax.bar(x - width / 2, eachPeak, width, label='PeakPrice')
+            rects2 = ax.bar(x + width / 2, eachCurrent, width, label='CurrentPrice')
+            ax.set_ylabel('Price')
+            ax.set_title('Peak price & Current price')
+            ax.set_xticks(x)
+            ax.set_xticklabels(name)
+            plt.yscale('log')
+            plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
+            plt.rcParams['font.serif'] = ['Microsoft YaHei']
+            plt.show()
+        elif user_choice == '5':
+            x = totalAmount
+            y = ATHFloated
+            plt.scatter(x, y)
+            plt.xscale('log')
+            plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
+            plt.rcParams['font.serif'] = ['Microsoft YaHei']
+            plt.xlabel("流通市值")
+            plt.ylabel("跌幅")
+            plt.show()
+        elif user_choice == '6':
+            ATHGroup = [name, ATHFloated]
+            declineDisperseCount = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+            for i in ATHFloated:
+                if i <= -0.9:
+                    declineDisperseCount[0] += 1
+                elif i <= -0.8:
+                    declineDisperseCount[1] += 1
+                elif i <= -0.7:
+                    declineDisperseCount[2] += 1
+                elif i <= -0.6:
+                    declineDisperseCount[3] += 1
+                elif i <= -0.5:
+                    declineDisperseCount[4] += 1
+                elif i <= -0.4:
+                    declineDisperseCount[5] += 1
+                elif i <= -0.3:
+                    declineDisperseCount[6] += 1
+                elif i <= -0.2:
+                    declineDisperseCount[7] += 1
+                elif i <= -0.1:
+                    declineDisperseCount[8] += 1
+            x = ['-90%', '-80%', '-70%', '-60%', '-50%', '-40%', '-30%', '-20%', '-10%']
+            y = declineDisperseCount
+            plt.bar(x, y)
+            plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
+            plt.rcParams['font.serif'] = ['Microsoft YaHei']
+            plt.title("各个跌幅分段个数统计")
+            plt.xlabel("跌幅")
+            plt.ylabel("个数")
+            plt.show()
+        elif user_choice == '7':
+            historyPeakTimeCount18 = [0, 0, 0]
+            historyPeakTimeCount19 = [0, 0, 0]
+            historyPeakTimeCount20 = [0, 0, 0]
+            historyPeakTimeCount21 = [0, 0, 0]
+            for i in historyPeakTimeInted:
+                if i >= 202105:
+                    historyPeakTimeCount21[1] += 1
+                elif i >= 202101:
+                    historyPeakTimeCount21[0] += 1
+                elif i >= 202009:
+                    historyPeakTimeCount20[2] += 1
+                elif i >= 202005:
+                    historyPeakTimeCount20[1] += 1
+                elif i >= 202001:
+                    historyPeakTimeCount20[0] += 1
+                elif i >= 201909:
+                    historyPeakTimeCount19[2] += 1
+                elif i >= 201905:
+                    historyPeakTimeCount19[1] += 1
+                elif i >= 201901:
+                    historyPeakTimeCount19[0] += 1
+                elif i >= 201809:
+                    historyPeakTimeCount18[2] += 1
+                elif i >= 201805:
+                    historyPeakTimeCount18[1] += 1
+                elif i >= 201801:
+                    historyPeakTimeCount18[0] += 1
+            historyPeakTimeCount = historyPeakTimeCount18 + historyPeakTimeCount19 + historyPeakTimeCount20 + historyPeakTimeCount21
+            x = ['18-01~04', '18-05~08', '18-09~12', '19-01~04', '19-05~08', '19-09~12', '20-01~04', '20-05~08',
+                 '20-09~12', '21-01~04', '21-05~08', '21-09~12']
+            plt.plot(x, historyPeakTimeCount)
+            plt.xlabel("月份")
+            plt.ylabel("高位个数")
+            plt.title("历史高位个数统计")
+            plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
+            plt.rcParams['font.serif'] = ['Microsoft YaHei']
+            plt.show()
+        elif user_choice == '0':
+            data.to_excel("C:\\Users\\CloudYirQ\\PycharmProjects\\2021大学计算机报告\\data.xlsx")
+            break
+        else:
+            pass
